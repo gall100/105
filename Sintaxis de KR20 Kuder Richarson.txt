@@ -1,0 +1,53 @@
+# Cargar la base de datos desde Excel
+# Asegúrate de que el archivo Excel esté en el directorio de trabajo o especifica la ruta completa
+datos <- KR20
+
+# Convertir los datos a un data frame
+datos <- as.data.frame(datos)
+
+# Número de ítems (columnas) en la prueba
+K <- ncol(datos)
+
+# Calcular p y q para cada ítem
+p <- colMeans(datos) # proporción de personas que contestaron correctamente cada ítem
+q <- 1 - p           # proporción de personas que no contestaron correctamente cada ítem
+
+# Calcular la sumatoria de pq
+sum_pq <- sum(p * q)
+
+# Calcular la varianza total de las puntuaciones de la prueba
+# Primero se obtiene la puntuación total de cada sujeto (suma de aciertos por fila)
+puntajes_totales <- rowSums(datos)
+# Luego se calcula la varianza muestral de las puntuaciones totales
+S_t2 <- var(puntajes_totales)
+
+# Calcular KR20 usando la fórmula de la imagen
+KR20 <- (K / (K - 1)) * (1 - (sum_pq / S_t2))
+
+# Redondear el valor de KR20 a tres decimales
+KR20_redondeado <- round(KR20, 3)
+
+# Determinar la valoración según la escala de De Vellis (1991)
+valoracion <- if (KR20_redondeado >= 0.95) {
+  "Muy elevada o Excelente"
+} else if (KR20_redondeado >= 0.90) {
+  "Elevada"
+} else if (KR20_redondeado >= 0.85) {
+  "Muy buena"
+} else if (KR20_redondeado >= 0.80) {
+  "Buena"
+} else if (KR20_redondeado >= 0.75) {
+  "Muy respetable"
+} else if (KR20_redondeado >= 0.70) {
+  "Respetable"
+} else if (KR20_redondeado >= 0.65) {
+  "Mínimamente aceptable"
+} else if (KR20_redondeado >= 0.40) {
+  "Moderada"
+} else {
+  "Inaceptable"
+}
+
+# Imprimir el valor de KR20 redondeado y su valoración
+print(paste("El valor de KR20 (Kuder-Richardson 20) es:", KR20_redondeado))
+print(paste("La valoración según la escala de De Vellis (1991) es:", valoracion))
