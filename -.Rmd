@@ -1,0 +1,19 @@
+---
+title: "I N F O R M E  P O R V I R G I L I O"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+
+\begin{center}
+    {\Large \textbf{I N F O R M E  P O R  V I R G I L I O}}\\[0.3cm]
+    {\large Nro. 1}
+\end{center}
+
+
+```{r,file=c("MyScripMaster.R"), echo=FALSE,evalue=FALSE}
+
+```
+
