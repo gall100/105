@@ -1,0 +1,13 @@
+---
+title: "RESULTADO"
+author: "Por virgilio"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,file=c("MyScripMaster.R"), echo=FALSE,evalue=FALSE}
+
+```
