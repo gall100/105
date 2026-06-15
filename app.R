@@ -1,371 +1,222 @@
 # ============================================================
-# DASHBOARD: MÁXIMOS Y MÍNIMOS DE FUNCIONES DE VARIAS VARIABLES
-# ============================================================
-# Autor: Sistema Educativo
-# Descripción: Aplicación Shiny para análisis interactivo
-#              de máximos, mínimos y puntos silla
+# DASHBOARD: MÁXIMOS Y MÍNIMOS - VERSIÓN CORREGIDA
 # ============================================================
 
 library(shiny)
+library(shinydashboard)
 library(plotly)
 library(DT)
 library(tidyverse)
-library(latex2exp)
-library(Ryacas)
 
-# Cargar funciones auxiliares
-source("funciones.R")
+# Cargar funciones
+source("funciones_corregida.R")
 
 # ============================================================
-# INTERFAZ DE USUARIO (UI)
+# UI
 # ============================================================
 
-ui <- fluidPage(
-  # CSS personalizado
-  tags$head(
-    tags$style(HTML("
-      body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f5f5f5;
-      }
-      .title-main {
-        color: #0275D8;
-        text-align: center;
-        margin-bottom: 30px;
-        font-weight: bold;
-        font-size: 36px;
-      }
-      .sidebar-section {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border-left: 4px solid #0275D8;
-      }
-      .info-box {
-        padding: 10px;
-        background-color: #e8f4f8;
-        border-left: 4px solid #0275D8;
-        margin: 10px 0;
-        border-radius: 4px;
-      }
-      .btn-primary {
-        background-color: #0275D8;
-        border-color: #0275D8;
-      }
-      .btn-primary:hover {
-        background-color: #0263bc;
-        border-color: #0263bc;
-      }
-      .box {
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      .result-box {
-        padding: 20px;
-        background-color: white;
-        border-radius: 8px;
-        margin: 15px 0;
-      }
-      .minimo {
-        color: #28a745;
-        font-weight: bold;
-        font-size: 16px;
-      }
-      .maximo {
-        color: #fd7e14;
-        font-weight: bold;
-        font-size: 16px;
-      }
-      .silla {
-        color: #9b59b6;
-        font-weight: bold;
-        font-size: 16px;
-      }
-    "))
+ui <- dashboardPage(
+  dashboardHeader(title = "Máximos y Mínimos"),
+  
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Análisis", tabName = "analisis", icon = icon("calculator")),
+      menuItem("Gráficas", tabName = "graficas", icon = icon("chart-line")),
+      menuItem("Tabla", tabName = "tabla", icon = icon("table")),
+      menuItem("Ayuda", tabName = "ayuda", icon = icon("question"))
+    )
   ),
   
-  # Título principal
-  h1("📊 Dashboard: Máximos y Mínimos", class = "title-main"),
-  
-  # Layout principal
-  sidebarLayout(
-    # ============================================================
-    # PANEL LATERAL (SIDEBAR)
-    # ============================================================
-    sidebarPanel(
-      width = 3,
-      
-      # Sección 1: Entrada de función
-      div(class = "sidebar-section",
-        h3("📝 ENTRADA DE DATOS", style = "color: #0275D8; margin-top: 0;"),
+  dashboardBody(
+    tabItems(
+      # TAB 1: ANÁLISIS
+      tabItem(tabName = "analisis",
+        h2("Ingrese una función f(x,y)"),
         
-        textInput(
-          "formula",
-          label = "Ingrese la función f(x,y):",
-          value = "x^2 + y^2 - 2*x - 4*y + 5",
-          placeholder = "Ej: x^2 + y^2 - 2*x - 4*y"
+        fluidRow(
+          column(6,
+            box(
+              title = "Entrada de Función",
+              solidHeader = TRUE,
+              status = "primary",
+              width = 12,
+              
+              textInput("formula",
+                label = "f(x,y) = ",
+                value = "x^2 + y^2 - 2*x - 4*y + 5",
+                width = "100%"
+              ),
+              
+              p("Ejemplos:"),
+              p("• x^2 + y^2"),
+              p("• x*y"),
+              p("• x^3 + y^3 - 3*x*y"),
+              
+              actionButton("analizar", "Analizar Función", 
+                          class = "btn btn-primary btn-lg",
+                          style = "width: 100%; margin-top: 15px;")
+            )
+          ),
+          
+          column(6,
+            box(
+              title = "Rango de Gráficas",
+              solidHeader = TRUE,
+              status = "primary",
+              width = 12,
+              
+              numericInput("x_min", "x mínimo:", value = -3, step = 0.5),
+              numericInput("x_max", "x máximo:", value = 3, step = 0.5),
+              numericInput("y_min", "y mínimo:", value = -3, step = 0.5),
+              numericInput("y_max", "y máximo:", value = 3, step = 0.5)
+            )
+          )
         ),
         
-        div(class = "info-box",
-          h5("📋 Ejemplos:", style = "margin-top: 0;"),
-          p("• x^2 + y^2", style = "font-size: 12px; margin: 5px 0;"),
-          p("• x*y - x - y", style = "font-size: 12px; margin: 5px 0;"),
-          p("• x^3 + y^3 - 3*x*y", style = "font-size: 12px; margin: 5px 0;"),
-          p("• sin(x) + cos(y)", style = "font-size: 12px; margin: 5px 0;"),
-          p("• x*y", style = "font-size: 12px; margin: 5px 0;")
+        br(),
+        
+        # Derivadas
+        fluidRow(
+          column(6,
+            box(
+              title = "Derivadas Parciales",
+              solidHeader = TRUE,
+              status = "info",
+              width = 12,
+              
+              h4("∂f/∂x ="),
+              verbatimTextOutput("output_fx"),
+              br(),
+              h4("∂f/∂y ="),
+              verbatimTextOutput("output_fy")
+            )
+          ),
+          
+          column(6,
+            box(
+              title = "Puntos Críticos",
+              solidHeader = TRUE,
+              status = "success",
+              width = 12,
+              
+              tableOutput("tabla_puntos_criticos")
+            )
+          )
         ),
         
-        actionButton(
-          "analizar",
-          "🔍 Analizar Función",
-          class = "btn-primary btn-lg",
-          style = "width: 100%; margin: 20px 0; font-size: 16px;"
+        br(),
+        
+        # Hessiano
+        fluidRow(
+          column(12,
+            box(
+              title = "Análisis del Hessiano",
+              solidHeader = TRUE,
+              status = "warning",
+              width = 12,
+              
+              tableOutput("tabla_hessiano")
+            )
+          )
+        ),
+        
+        br(),
+        
+        # Conclusiones
+        fluidRow(
+          column(12,
+            box(
+              title = "Conclusiones",
+              solidHeader = TRUE,
+              status = "success",
+              width = 12,
+              
+              htmlOutput("resumen_conclusiones")
+            )
+          )
         )
       ),
       
-      # Sección 2: Rango de gráficas
-      div(class = "sidebar-section",
-        h4("📈 Rango de Gráficas", style = "margin-top: 0;"),
+      # TAB 2: GRÁFICAS
+      tabItem(tabName = "graficas",
+        h2("Visualizaciones"),
         
         fluidRow(
-          column(6,
-            numericInput("x_min", "x mín:", value = -3, step = 0.5)
-          ),
-          column(6,
-            numericInput("x_max", "x máx:", value = 3, step = 0.5)
+          column(12,
+            box(
+              title = "Superficie 3D",
+              solidHeader = TRUE,
+              status = "primary",
+              width = 12,
+              height = 750,
+              
+              plotlyOutput("grafica_3d", height = "700px")
+            )
           )
         ),
         
-        fluidRow(
-          column(6,
-            numericInput("y_min", "y mín:", value = -3, step = 0.5)
-          ),
-          column(6,
-            numericInput("y_max", "y máx:", value = 3, step = 0.5)
-          )
-        ),
+        br(),
         
-        p("Ajusta el rango para enfocarte en diferentes áreas",
-          style = "font-size: 11px; color: gray; margin-top: 10px;")
+        fluidRow(
+          column(12,
+            box(
+              title = "Curvas de Nivel",
+              solidHeader = TRUE,
+              status = "primary",
+              width = 12,
+              height = 750,
+              
+              plotlyOutput("grafica_contornos", height = "700px")
+            )
+          )
+        )
       ),
       
-      # Sección 3: Información
-      div(class = "info-box",
-        h5("ℹ️ Información", style = "margin-top: 0;"),
-        p("Este dashboard calcula automáticamente:",
-          style = "font-size: 12px; margin: 0 0 5px 0;"),
-        p("✓ Derivadas parciales",
-          style = "font-size: 11px; margin: 3px 0;"),
-        p("✓ Puntos críticos",
-          style = "font-size: 11px; margin: 3px 0;"),
-        p("✓ Matriz Hessiana",
-          style = "font-size: 11px; margin: 3px 0;"),
-        p("✓ Clasificación de puntos",
-          style = "font-size: 11px; margin: 3px 0;")
-      )
-    ),
-    
-    # ============================================================
-    # PANEL PRINCIPAL
-    # ============================================================
-    mainPanel(
-      width = 9,
+      # TAB 3: TABLA
+      tabItem(tabName = "tabla",
+        h2("Tabla de Valores"),
+        
+        fluidRow(
+          column(12,
+            box(
+              title = "Valores de f(x,y)",
+              solidHeader = TRUE,
+              status = "primary",
+              width = 12,
+              
+              DTOutput("tabla_valores")
+            )
+          )
+        )
+      ),
       
-      # Tabs principales
-      tabsetPanel(
+      # TAB 4: AYUDA
+      tabItem(tabName = "ayuda",
+        h2("Cómo Usar"),
         
-        # TAB 1: ANÁLISIS MATEMÁTICO
-        tabPanel(
-          "📐 Análisis Matemático",
-          icon = icon("calculator"),
+        box(
+          width = 12,
+          status = "primary",
+          solidHeader = TRUE,
+          title = "Instrucciones",
           
-          br(),
+          h4("1. Ingresa la función"),
+          p("Escribe una función en dos variables x e y. Usa operadores: +, -, *, /, ^"),
           
-          # Fila 1: Derivadas y Puntos Críticos
-          fluidRow(
-            column(6,
-              box(
-                title = "Derivadas Parciales",
-                status = "primary",
-                solidHeader = TRUE,
-                width = 12,
-                
-                h5("∂f/∂x =", style = "color: #0275D8; margin-bottom: 10px;"),
-                verbatimTextOutput("output_fx"),
-                br(),
-                h5("∂f/∂y =", style = "color: #0275D8; margin-bottom: 10px;"),
-                verbatimTextOutput("output_fy")
-              )
-            ),
-            
-            column(6,
-              box(
-                title = "Puntos Críticos",
-                status = "success",
-                solidHeader = TRUE,
-                width = 12,
-                
-                tableOutput("tabla_puntos_criticos")
-              )
-            )
+          h4("2. Presiona 'Analizar Función'"),
+          p("El sistema calculará:"),
+          tags$ul(
+            tags$li("Derivadas parciales"),
+            tags$li("Puntos críticos"),
+            tags$li("Matriz Hessiana"),
+            tags$li("Clasificación (mínimo, máximo, punto silla)")
           ),
           
-          br(),
-          
-          # Fila 2: Hessiano
-          fluidRow(
-            column(12,
-              box(
-                title = "Análisis del Hessiano (Prueba de la Segunda Derivada)",
-                status = "info",
-                solidHeader = TRUE,
-                width = 12,
-                
-                tableOutput("tabla_hessiano")
-              )
-            )
-          ),
-          
-          br(),
-          
-          # Fila 3: Conclusiones
-          fluidRow(
-            column(12,
-              box(
-                title = "✅ Conclusiones y Clasificación",
-                status = "warning",
-                solidHeader = TRUE,
-                width = 12,
-                
-                htmlOutput("resumen_conclusiones"),
-                style = "font-size: 16px;"
-              )
-            )
-          )
-        ),
-        
-        # TAB 2: SUPERFICIE 3D
-        tabPanel(
-          "🎨 Superficie 3D",
-          icon = icon("cube"),
-          
-          br(),
-          
-          box(
-            title = "Visualización de la Función en Tres Dimensiones",
-            status = "primary",
-            solidHeader = TRUE,
-            width = 12,
-            
-            plotlyOutput("grafica_3d", height = "700px"),
-            
-            p(
-              "💡 Interactividad: Usa el ratón para rotar, rueda del mouse para zoom, clic derecho para desplazar. Los puntos rojos marcan los puntos críticos.",
-              style = "color: #0275D8; font-size: 13px; margin-top: 15px; font-style: italic;"
-            )
-          )
-        ),
-        
-        # TAB 3: CURVAS DE NIVEL
-        tabPanel(
-          "🗺️ Curvas de Nivel",
-          icon = icon("mountain"),
-          
-          br(),
-          
-          box(
-            title = "Contornos de la Función (Líneas de Nivel)",
-            status = "primary",
-            solidHeader = TRUE,
-            width = 12,
-            
-            plotlyOutput("grafica_contornos", height = "700px"),
-            
-            p(
-              "Las líneas representan puntos donde la función tiene el mismo valor. Los puntos rojos marcan los puntos críticos.",
-              style = "color: #0275D8; font-size: 13px; margin-top: 15px; font-style: italic;"
-            )
-          )
-        ),
-        
-        # TAB 4: TABLA DE VALORES
-        tabPanel(
-          "📊 Tabla de Valores",
-          icon = icon("table"),
-          
-          br(),
-          
-          box(
-            title = "Valores de la Función (Ordenados de Menor a Mayor)",
-            status = "primary",
-            solidHeader = TRUE,
-            width = 12,
-            
-            DTOutput("tabla_valores")
-          ),
-          
-          br(),
-          
-          box(
-            title = "Información de la Tabla",
-            status = "info",
-            solidHeader = TRUE,
-            width = 12,
-            
-            p(
-              "La tabla muestra una muestra de valores de la función en diferentes puntos del dominio especificado.",
-              style = "font-size: 13px; margin: 0;"
-            ),
-            p(
-              "El color de fondo refleja la magnitud del valor (azul = bajo, rojo = alto).",
-              style = "font-size: 13px;"
-            )
-          )
-        ),
-        
-        # TAB 5: AYUDA
-        tabPanel(
-          "❓ Ayuda",
-          icon = icon("question-circle"),
-          
-          br(),
-          
-          box(
-            title = "Cómo Usar Este Dashboard",
-            status = "primary",
-            solidHeader = TRUE,
-            width = 12,
-            
-            h4("1. Ingresa la Función"),
-            p("Escribe tu función en el campo 'Ingrese la función f(x,y)'.
-              Usa variables 'x' e 'y', y operadores como +, -, *, /, ^."),
-            
-            h4("2. Presiona 'Analizar Función'"),
-            p("El sistema calculará automáticamente:"),
-            tags$ul(
-              tags$li("Derivadas parciales ∂f/∂x y ∂f/∂y"),
-              tags$li("Puntos críticos (donde ∂f/∂x = 0 y ∂f/∂y = 0)"),
-              tags$li("Matriz Hessiana (segundas derivadas)"),
-              tags$li("Determinante del Hessiano"),
-              tags$li("Clasificación de cada punto")
-            ),
-            
-            h4("3. Interpreta los Resultados"),
-            tags$ul(
-              tags$li("MÍNIMO LOCAL: det(H) > 0 y fₓₓ > 0"),
-              tags$li("MÁXIMO LOCAL: det(H) > 0 y fₓₓ < 0"),
-              tags$li("PUNTO SILLA: det(H) < 0"),
-              tags$li("NO CONCLUYENTE: det(H) = 0")
-            ),
-            
-            h4("4. Visualiza con las Gráficas"),
-            tags$ul(
-              tags$li("Superficie 3D: Visualiza la función en tres dimensiones"),
-              tags$li("Curvas de Nivel: Ve las líneas de contorno"),
-              tags$li("Tabla de Valores: Explora valores numéricos")
-            )
-          )
+          h4("3. Interpreta resultados"),
+          p("det(H) > 0 y fxx > 0 → Mínimo local"),
+          p("det(H) > 0 y fxx < 0 → Máximo local"),
+          p("det(H) < 0 → Punto silla"),
+          p("det(H) = 0 → No concluyente")
         )
       )
     )
@@ -373,12 +224,12 @@ ui <- fluidPage(
 )
 
 # ============================================================
-# LÓGICA DEL SERVIDOR
+# SERVER
 # ============================================================
 
 server <- function(input, output, session) {
   
-  # Valores reactivos para almacenar resultados
+  # Valores reactivos
   resultados <- reactiveValues(
     formula = NULL,
     derivadas = NULL,
@@ -392,48 +243,47 @@ server <- function(input, output, session) {
     
     formula_input <- input$formula
     
-    # Validar entrada
     if (formula_input == "") {
-      showNotification("⚠️ Por favor ingrese una función", type = "error", duration = 3)
+      showNotification("Por favor ingrese una función", type = "error")
       return()
     }
     
-    # Mostrar notificación de carga
-    showNotification("⏳ Analizando función...", type = "message", duration = 2)
-    
-    # Calcular derivadas
-    resultados$derivadas <- calcular_derivadas(formula_input)
-    
-    if (!resultados$derivadas$exito) {
-      showNotification(paste("❌ Error:", resultados$derivadas$error), type = "error", duration = 5)
-      return()
-    }
-    
-    # Encontrar puntos críticos
-    resultados$puntos_criticos <- encontrar_puntos_criticos(formula_input)
-    
-    # Generar datos para gráfica 3D
-    resultados$datos_3d <- generar_datos_3d(
-      formula_input,
-      x_min = input$x_min,
-      x_max = input$x_max,
-      y_min = input$y_min,
-      y_max = input$y_max,
-      n = 50
-    )
-    
-    resultados$formula <- formula_input
-    resultados$analizado <- TRUE
-    
-    showNotification("✅ Análisis completado exitosamente", type = "message", duration = 3)
+    tryCatch({
+      # Calcular derivadas
+      resultados$derivadas <- calcular_derivadas(formula_input)
+      
+      if (!resultados$derivadas$exito) {
+        showNotification(paste("Error:", resultados$derivadas$error), type = "error")
+        return()
+      }
+      
+      # Encontrar puntos críticos
+      resultados$puntos_criticos <- encontrar_puntos_criticos(formula_input)
+      
+      # Generar datos 3D
+      resultados$datos_3d <- generar_datos_3d(
+        formula_input,
+        x_min = input$x_min,
+        x_max = input$x_max,
+        y_min = input$y_min,
+        y_max = input$y_max,
+        n = 40
+      )
+      
+      resultados$formula <- formula_input
+      resultados$analizado <- TRUE
+      
+      showNotification("Análisis completado", type = "message")
+      
+    }, error = function(e) {
+      showNotification(paste("Error:", e$message), type = "error")
+    })
   })
   
-  # ============================================================
-  # OUTPUT 1: Derivada parcial ∂f/∂x
-  # ============================================================
+  # OUTPUT: Derivada fx
   output$output_fx <- renderText({
     if (!resultados$analizado) {
-      return("(Presiona '🔍 Analizar Función' para ver resultados)")
+      return("(Ingresa una función y presiona Analizar)")
     }
     
     if (!resultados$derivadas$exito) {
@@ -443,12 +293,10 @@ server <- function(input, output, session) {
     resultados$derivadas$fx
   })
   
-  # ============================================================
-  # OUTPUT 2: Derivada parcial ∂f/∂y
-  # ============================================================
+  # OUTPUT: Derivada fy
   output$output_fy <- renderText({
     if (!resultados$analizado) {
-      return("(Presiona '🔍 Analizar Función' para ver resultados)")
+      return("(Ingresa una función y presiona Analizar)")
     }
     
     if (!resultados$derivadas$exito) {
@@ -458,56 +306,44 @@ server <- function(input, output, session) {
     resultados$derivadas$fy
   })
   
-  # ============================================================
-  # OUTPUT 3: Tabla de Puntos Críticos
-  # ============================================================
+  # OUTPUT: Tabla puntos críticos
   output$tabla_puntos_criticos <- renderTable({
     if (!resultados$analizado) {
-      return(data.frame(Mensaje = "No hay datos"))
+      return(data.frame())
     }
     
     if (!resultados$puntos_criticos$exito) {
-      return(data.frame(Error = resultados$puntos_criticos$error))
-    }
-    
-    puntos <- resultados$puntos_criticos$puntos
-    
-    if (nrow(puntos) == 0) {
       return(data.frame(Mensaje = "No se encontraron puntos críticos"))
     }
     
-    # Evaluar función en cada punto crítico
-    puntos$f_xy <- mapply(function(x, y) {
-      evaluar_funcion(resultados$formula, x, y)
-    }, puntos$x, puntos$y)
+    puntos <- resultados$puntos_criticos$puntos
     
-    puntos_tabla <- puntos %>% 
-      mutate(
-        x = round(x, 4),
-        y = round(y, 4),
-        f_xy = round(f_xy, 4)
-      ) %>%
-      rename(
-        "x" = x,
-        "y" = y,
-        "f(x,y)" = f_xy
-      )
+    if (nrow(puntos) == 0) {
+      return(data.frame(Mensaje = "No hay puntos"))
+    }
     
-    puntos_tabla
-  }, rownames = TRUE)
+    # Evaluar función
+    puntos$f_xy <- sapply(1:nrow(puntos), function(i) {
+      evaluar_funcion(resultados$formula, puntos$x[i], puntos$y[i])
+    })
+    
+    data.frame(
+      x = round(puntos$x, 4),
+      y = round(puntos$y, 4),
+      f_xy = round(puntos$f_xy, 4)
+    )
+  })
   
-  # ============================================================
-  # OUTPUT 4: Tabla del Hessiano
-  # ============================================================
+  # OUTPUT: Tabla Hessiano
   output$tabla_hessiano <- renderTable({
     if (!resultados$analizado) {
-      return(data.frame(Mensaje = "No hay datos"))
+      return(data.frame())
     }
     
     puntos <- resultados$puntos_criticos$puntos
     
     if (nrow(puntos) == 0) {
-      return(data.frame(Mensaje = "No hay puntos críticos para analizar"))
+      return(data.frame())
     }
     
     tabla_h <- data.frame()
@@ -522,13 +358,12 @@ server <- function(input, output, session) {
         clasificacion <- clasificar_punto(hess$det_H, hess$fxx)
         
         fila <- data.frame(
-          "Punto" = paste("(", round(x_val, 3), ",", round(y_val, 3), ")"),
-          "fₓₓ" = round(hess$fxx, 4),
-          "f_yy" = round(hess$fyy, 4),
-          "fₓᵧ" = round(hess$fxy, 4),
-          "det(H)" = round(hess$det_H, 4),
-          "Clasificación" = clasificacion,
-          check.names = FALSE
+          Punto = paste("(", round(x_val, 3), ",", round(y_val, 3), ")"),
+          fxx = round(hess$fxx, 4),
+          fyy = round(hess$fyy, 4),
+          fxy = round(hess$fxy, 4),
+          det_H = round(hess$det_H, 4),
+          Tipo = clasificacion
         )
         
         tabla_h <- rbind(tabla_h, fila)
@@ -536,176 +371,83 @@ server <- function(input, output, session) {
     }
     
     tabla_h
-  }, rownames = TRUE)
+  })
   
-  # ============================================================
-  # OUTPUT 5: Conclusiones
-  # ============================================================
+  # OUTPUT: Conclusiones
   output$resumen_conclusiones <- renderUI({
     if (!resultados$analizado) {
-      return(h4("Presiona '🔍 Analizar Función' para ver conclusiones"))
+      return(h4("Ingresa una función para ver conclusiones"))
     }
     
     puntos <- resultados$puntos_criticos$puntos
     
     if (nrow(puntos) == 0) {
-      return(h4("No se encontraron puntos críticos para esta función"))
+      return(h4("No se encontraron puntos críticos"))
     }
     
-    # Clasificar puntos
-    minimos <- data.frame()
-    maximos <- data.frame()
-    sillas <- data.frame()
+    html_text <- "<p><strong>Puntos encontrados:</strong></p>"
     
     for (i in 1:nrow(puntos)) {
       x_val <- puntos$x[i]
       y_val <- puntos$y[i]
       f_val <- evaluar_funcion(resultados$formula, x_val, y_val)
-      
       hess <- calcular_hessiano(resultados$formula, x_val, y_val)
       
       if (hess$exito) {
         clasificacion <- clasificar_punto(hess$det_H, hess$fxx)
-        
-        punto_info <- data.frame(
-          x = round(x_val, 3),
-          y = round(y_val, 3),
-          f = round(f_val, 3)
-        )
-        
-        if (clasificacion == "MÍNIMO LOCAL") {
-          minimos <- rbind(minimos, punto_info)
-        } else if (clasificacion == "MÁXIMO LOCAL") {
-          maximos <- rbind(maximos, punto_info)
-        } else if (clasificacion == "PUNTO SILLA") {
-          sillas <- rbind(sillas, punto_info)
-        }
+        html_text <- paste(html_text, 
+          "<p style='color: green; font-weight: bold;'>",
+          clasificacion, 
+          " en (", round(x_val, 3), ",", round(y_val, 3), ") = ",
+          round(f_val, 3),
+          "</p>", sep = "")
       }
     }
     
-    # Construir HTML de resultados
-    html_content <- ""
-    
-    if (nrow(minimos) > 0) {
-      html_content <- paste(html_content, 
-        "<p class='minimo'>✓ MÍNIMOS LOCALES:</p>",
-        paste(sapply(1:nrow(minimos), function(i) {
-          paste("<p style='margin-left: 20px;'>
-                 Punto (", minimos$x[i], ",", minimos$y[i], ") 
-                 con valor f(x,y) = <strong>", minimos$f[i], "</strong>
-                 </p>")
-        }), collapse = ""),
-        sep = "")
-    }
-    
-    if (nrow(maximos) > 0) {
-      html_content <- paste(html_content,
-        "<p class='maximo'>✓ MÁXIMOS LOCALES:</p>",
-        paste(sapply(1:nrow(maximos), function(i) {
-          paste("<p style='margin-left: 20px;'>
-                 Punto (", maximos$x[i], ",", maximos$y[i], ") 
-                 con valor f(x,y) = <strong>", maximos$f[i], "</strong>
-                 </p>")
-        }), collapse = ""),
-        sep = "")
-    }
-    
-    if (nrow(sillas) > 0) {
-      html_content <- paste(html_content,
-        "<p class='silla'>✓ PUNTOS SILLA:</p>",
-        paste(sapply(1:nrow(sillas), function(i) {
-          paste("<p style='margin-left: 20px;'>
-                 Punto (", sillas$x[i], ",", sillas$y[i], ") 
-                 con valor f(x,y) = <strong>", sillas$f[i], "</strong>
-                 </p>")
-        }), collapse = ""),
-        sep = "")
-    }
-    
-    if (html_content == "") {
-      html_content <- "<p>No se encontraron puntos críticos clasificables.</p>"
-    }
-    
-    HTML(html_content)
+    HTML(html_text)
   })
   
-  # ============================================================
-  # OUTPUT 6: Gráfica 3D
-  # ============================================================
+  # OUTPUT: Gráfica 3D
   output$grafica_3d <- renderPlotly({
-    if (!resultados$analizado || is.null(resultados$datos_3d) || !resultados$datos_3d$exito) {
-      return(plotly_empty() %>% 
-        layout(title = "Ingresa una función válida y presiona 'Analizar'"))
+    if (!resultados$analizado || !resultados$datos_3d$exito) {
+      return(plotly_empty())
     }
     
     datos <- resultados$datos_3d$datos
     
-    # Convertir a matriz
     x_unique <- sort(unique(datos$x))
     y_unique <- sort(unique(datos$y))
     
-    z_matrix <- matrix(
-      datos$z,
-      nrow = length(x_unique),
-      ncol = length(y_unique),
-      byrow = FALSE
-    )
+    z_matrix <- matrix(datos$z, nrow = length(x_unique), byrow = FALSE)
     
-    # Crear gráfica 3D
-    p <- plot_ly(
-      x = x_unique,
-      y = y_unique,
-      z = z_matrix,
-      type = "surface",
-      colorscale = "Viridis",
-      showscale = TRUE
-    ) %>%
-      layout(
-        title = list(text = "Superficie de la Función f(x,y)", x = 0.5),
-        scene = list(
-          xaxis = list(title = "x"),
-          yaxis = list(title = "y"),
-          zaxis = list(title = "f(x,y)")
-        ),
-        width = 900,
-        height = 700
-      )
+    p <- plot_ly(x = x_unique, y = y_unique, z = z_matrix,
+                 type = "surface", colorscale = "Viridis") %>%
+      layout(title = "Superficie 3D",
+             scene = list(
+               xaxis = list(title = "x"),
+               yaxis = list(title = "y"),
+               zaxis = list(title = "f(x,y)")
+             ))
     
     # Añadir puntos críticos
-    if (!is.null(resultados$puntos_criticos) && 
-        resultados$puntos_criticos$exito && 
-        nrow(resultados$puntos_criticos$puntos) > 0) {
-      
+    if (resultados$puntos_criticos$exito) {
       puntos <- resultados$puntos_criticos$puntos
-      
       for (i in 1:nrow(puntos)) {
-        x_p <- puntos$x[i]
-        y_p <- puntos$y[i]
-        z_p <- evaluar_funcion(resultados$formula, x_p, y_p)
-        
-        p <- p %>% add_trace(
-          x = c(x_p),
-          y = c(y_p),
-          z = c(z_p),
-          mode = 'markers',
-          type = 'scatter3d',
-          marker = list(size = 8, color = 'red'),
-          name = "Punto Crítico",
-          showlegend = (i == 1)
-        )
+        z_p <- evaluar_funcion(resultados$formula, puntos$x[i], puntos$y[i])
+        p <- p %>% add_trace(x = puntos$x[i], y = puntos$y[i], z = z_p,
+                             type = "scatter3d", mode = "markers",
+                             marker = list(size = 8, color = "red"),
+                             showlegend = (i == 1), name = "Crítico")
       }
     }
     
     p
   })
   
-  # ============================================================
-  # OUTPUT 7: Gráfica de Contornos
-  # ============================================================
+  # OUTPUT: Contornos
   output$grafica_contornos <- renderPlotly({
-    if (!resultados$analizado || is.null(resultados$datos_3d) || !resultados$datos_3d$exito) {
-      return(plotly_empty() %>% 
-        layout(title = "Ingresa una función válida y presiona 'Analizar'"))
+    if (!resultados$analizado || !resultados$datos_3d$exito) {
+      return(plotly_empty())
     }
     
     datos <- resultados$datos_3d$datos
@@ -713,62 +455,30 @@ server <- function(input, output, session) {
     x_unique <- sort(unique(datos$x))
     y_unique <- sort(unique(datos$y))
     
-    z_matrix <- matrix(
-      datos$z,
-      nrow = length(x_unique),
-      ncol = length(y_unique),
-      byrow = FALSE
-    )
+    z_matrix <- matrix(datos$z, nrow = length(x_unique), byrow = FALSE)
     
-    p <- plot_ly(
-      x = x_unique,
-      y = y_unique,
-      z = z_matrix,
-      type = "contour",
-      colorscale = "Viridis",
-      contours = list(
-        showlabels = TRUE,
-        labelfont = list(size = 12)
-      )
-    ) %>%
-      layout(
-        title = list(text = "Curvas de Nivel de f(x,y)", x = 0.5),
-        xaxis = list(title = "x"),
-        yaxis = list(title = "y"),
-        width = 900,
-        height = 700
-      )
+    p <- plot_ly(x = x_unique, y = y_unique, z = z_matrix,
+                 type = "contour", colorscale = "Viridis") %>%
+      layout(title = "Curvas de Nivel",
+             xaxis = list(title = "x"),
+             yaxis = list(title = "y"))
     
     # Añadir puntos críticos
-    if (!is.null(resultados$puntos_criticos) && 
-        resultados$puntos_criticos$exito &&
-        nrow(resultados$puntos_criticos$puntos) > 0) {
-      
+    if (resultados$puntos_criticos$exito) {
       puntos <- resultados$puntos_criticos$puntos
-      
-      p <- p %>% add_trace(
-        x = puntos$x,
-        y = puntos$y,
-        mode = 'markers',
-        type = 'scatter',
-        marker = list(size = 10, color = 'red'),
-        name = "Puntos Críticos",
-        showlegend = TRUE
-      )
+      p <- p %>% add_trace(x = puntos$x, y = puntos$y, type = "scatter",
+                           mode = "markers",
+                           marker = list(size = 10, color = "red"),
+                           name = "Críticos")
     }
     
     p
   })
   
-  # ============================================================
-  # OUTPUT 8: Tabla de Valores
-  # ============================================================
+  # OUTPUT: Tabla valores
   output$tabla_valores <- renderDT({
     if (!resultados$analizado) {
-      return(datatable(
-        data.frame(Mensaje = "Presiona '🔍 Analizar Función'"),
-        options = list(dom = 't')
-      ))
+      return(datatable(data.frame()))
     }
     
     tabla <- generar_tabla_valores(
@@ -777,37 +487,15 @@ server <- function(input, output, session) {
       x_max = input$x_max,
       y_min = input$y_min,
       y_max = input$y_max,
-      n = 20
+      n = 15
     )
     
-    if (nrow(tabla) == 0) {
-      return(datatable(
-        data.frame(Mensaje = "No se pudo generar tabla"),
-        options = list(dom = 't')
-      ))
-    }
-    
-    datatable(
-      tabla,
-      options = list(
-        pageLength = 15,
-        language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json'),
-        dom = 'lfrtip'
-      ),
-      colnames = c("x", "y", "f(x,y)")
-    ) %>%
-      formatStyle(
-        'f_xy',
-        background = styleColorBar(tabla$f_xy, 'lightblue'),
-        backgroundSize = '100% 90%',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
-      )
+    datatable(tabla, options = list(pageLength = 20))
   })
 }
 
 # ============================================================
-# EJECUTAR LA APLICACIÓN
+# EJECUTAR
 # ============================================================
 
 shinyApp(ui, server)
